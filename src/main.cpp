@@ -7,7 +7,7 @@
 #define PPI 300
 #define CM2INCH 1/2.54
 
-std::string folderPath = "C:/Users/HL2020/Downloads/phuong/*.jpg";
+std::string folderPath = "E:/IN ANH/2023/thang 3/03/6x9 polaroid/*.jpg";
 float width = 6;
 float height = 9;
 float borderOfset = 0.25;
@@ -48,12 +48,19 @@ void inspection(std::string imagePath)
 	std::cout << "inspection: " << imagePath << std::endl;
 	cv::Mat im = cv::imread(imagePath, cv::IMREAD_ANYCOLOR );
 
-	if(im.cols > im.rows) cv::rotate(im, im, cv::ROTATE_90_CLOCKWISE);
-
-	cv::Size size = cv::Size(cm2pixel(width),cm2pixel(height));
+	cv::Rect borderRect;
 	float borderOfsetPixel = cm2pixel(borderOfset);
-	std::cout << borderOfsetPixel << std::endl;
-	cv::Rect borderRect = cv::Rect(borderOfsetPixel, borderOfsetPixel, size.width - borderOfsetPixel*2, size.height - borderOfsetPixel*5);
+	cv::Size size = cv::Size(cm2pixel(width),cm2pixel(height));
+	if(im.cols > im.rows)
+	{
+		cv::rotate(im, im, cv::ROTATE_90_CLOCKWISE);
+		borderRect = cv::Rect(borderOfsetPixel*2, borderOfsetPixel, size.width - borderOfsetPixel*3, size.height - borderOfsetPixel*2);
+	}
+	else
+	{
+		borderRect = cv::Rect(borderOfsetPixel, borderOfsetPixel, size.width - borderOfsetPixel*2, size.height - borderOfsetPixel*5);
+	}
+
 	cv::Mat resizeImg = resizeKeepAspectRatio(im, borderRect.size(), bgColor);
 	cv::Mat ouput = cv::Mat(size, im.type(), borderColor);
 	resizeImg.copyTo(ouput(borderRect));
