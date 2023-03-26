@@ -2,7 +2,8 @@
 #include <string>
 #include <vector>
 #include "opencv2/core.hpp"
-#include "opencv2/opencv.hpp"
+#include "opencv2/highgui.hpp"
+#include "opencv2/imgproc.hpp"
 
 #define PPI 300
 #define CM2INCH 1/2.54
