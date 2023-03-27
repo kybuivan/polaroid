@@ -11,13 +11,13 @@ class Texture2D
 {
 public:
     Texture2D(){}
-    Texture2D(int _width, int _height) : mWidth(_width), mHeight(_height){}
     Texture2D(std::string path)
     {
         // Load from file
         cv::Mat img = cv::imread(path);
         if(!img.empty())
         {
+            cv::cvtColor(img, img, cv::COLOR_BGR2RGBA);
             // Create a OpenGL texture identifier
             glGenTextures(1, &mRenderID);
             glBindTexture(GL_TEXTURE_2D, mRenderID);
@@ -32,9 +32,8 @@ public:
         #if defined(GL_UNPACK_ROW_LENGTH) && !defined(__EMSCRIPTEN__)
             glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
         #endif
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img.cols, img.rows, 0, GL_RGBA, GL_UNSIGNED_BYTE, img.ptr());
-            mWidth = img.cols;
-            mHeight = img.rows;
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, img.cols, img.rows, 0, GL_RGBA, GL_UNSIGNED_BYTE, img.data);
+            mSize = img.size();
             img.release();
         }
         else
@@ -42,14 +41,12 @@ public:
             std::cout << "Load texture fault!" << std::endl;
         }
     }
-
     // ~Texture2D()
     // {
     //     glDeleteTextures(1, &mRenderID);
     // }
 public:
-    int mWidth = 0;
-    int mHeight = 0;
+    cv::Size mSize{};
     uint32_t mRenderID = 0;
 };
 

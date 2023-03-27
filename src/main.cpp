@@ -54,7 +54,7 @@ public:
 					{
 						puts("Success!");
 						puts(outPath);
-						text = Texture2D(outPath);
+						mText = Texture2D(outPath);
 						free(outPath);
 					}
 					else if ( result == NFD_CANCEL )
@@ -112,8 +112,8 @@ public:
 	{
 		{
 			ImGui::Begin("Setting");   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-			ImGui::Text("pointer = %p", text.mRenderID);
-			ImGui::Text("size = %d x %d", text.mWidth, text.mHeight);
+			ImGui::Text("pointer = %p", mText.mRenderID);
+			ImGui::Text("size = %d x %d", mText.mSize.width, mText.mSize.height);
 			ImGui::End();
 		}
 
@@ -121,9 +121,9 @@ public:
 			ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(20, 20, 20, 255));
 			ImGui::Begin("Viewer");
 			//image_size = ImVec2(text.mWidth, text.mHeight);
-			ImVec2 newSize = GetScaleImageSize(ImVec2(static_cast<float>(text.mWidth), static_cast<float>(text.mHeight)), ImGui::GetWindowSize());
+			ImVec2 newSize = GetScaleImageSize(ImVec2(static_cast<float>(mText.mSize.width), static_cast<float>(mText.mSize.height)), ImGui::GetWindowSize());
 			ImGui::SetCursorPos(ImVec2((ImGui::GetWindowSize().x - newSize.x) * 0.5f, (ImGui::GetWindowSize().y - newSize.y) * 0.5f));
-			ImGui::Image((void*)(intptr_t)text.mRenderID, newSize);
+			ImGui::Image((void*)(intptr_t)mText.mRenderID, newSize);
 			ImGui::End();
 			ImGui::PopStyleColor();
 		}
@@ -134,8 +134,8 @@ public:
 		cv::Mat im = cv::imread(imagePath, cv::IMREAD_ANYCOLOR );
 
 		cv::Rect borderRect;
-		float borderOfsetPixel = cm2pixel(borderOfset);
-		cv::Size size = cv::Size(cm2pixel(width),cm2pixel(height));
+		float borderOfsetPixel = cm2pixel(mBorderOfset);
+		cv::Size size = cv::Size(cm2pixel(mWidth),cm2pixel(mHeight));
 		if(im.cols > im.rows)
 		{
 			cv::rotate(im, im, cv::ROTATE_90_CLOCKWISE);
@@ -146,8 +146,8 @@ public:
 			borderRect = cv::Rect(borderOfsetPixel, borderOfsetPixel, size.width - borderOfsetPixel*2, size.height - borderOfsetPixel*5);
 		}
 
-		cv::Mat resizeImg = resizeKeepAspectRatio(im, borderRect.size(), bgColor);
-		cv::Mat ouput = cv::Mat(size, im.type(), borderColor);
+		cv::Mat resizeImg = resizeKeepAspectRatio(im, borderRect.size(), mBgColor);
+		cv::Mat ouput = cv::Mat(size, im.type(), mBorderColor);
 		resizeImg.copyTo(ouput(borderRect));
 		cv::imwrite(imagePath+".png",ouput);
 	}
@@ -178,13 +178,13 @@ public:
 	bool exit_app = false;
 private:
 	std::string folderPath = "E:/IN ANH/2023/thang 3/03/6x9 polaroid/*.jpg";
-	float width = 6;
-	float height = 9;
-	float borderOfset = 0.25;
-	cv::Scalar bgColor = cv::Scalar(255, 255, 255);
-	cv::Scalar borderColor = cv::Scalar(255, 255, 255);
+	float mWidth = 6;
+	float mHeight = 9;
+	float mBorderOfset = 0.25;
+	cv::Scalar mBgColor = cv::Scalar(255, 255, 255);
+	cv::Scalar mBorderColor = cv::Scalar(255, 255, 255);
 	std::vector<std::string> filenames;
-	Texture2D text;
+	Texture2D mText, mBorderText;
 };
 
 int main()
