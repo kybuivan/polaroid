@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16.0 FATAL_ERROR)
 
 project(polaroid)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -26,6 +26,10 @@ include(nfd)
 include(opencv)
 
 add_executable (${PROJECT_NAME} ${SRC_FILES})
+
+if (WIN32)
+    set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
+endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC
 	${PROJECT_SOURCE_DIR}/src

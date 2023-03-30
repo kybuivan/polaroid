@@ -4,7 +4,11 @@
 #include "window.h"
 #include "nfd.h"
 #include "utils.h"
+#include "ref.h"
 #include "opencv2/highgui.hpp"
+#include <iostream>
+#include <filesystem>
+using namespace std::filesystem;
 
 struct Texture2D
 {
@@ -83,7 +87,7 @@ public:
 		mTexture = ImageInfo::CreateTexture(cv::Mat::zeros(cv::Size(cm2pixel(mWidth), cm2pixel(mHeight)), CV_8UC3));
 	}
 
-	void Application::MenuBarFunction()
+	void MenuBarFunction()
 	{
 		if (ImGui::BeginMainMenuBar())
 		{
@@ -106,7 +110,7 @@ public:
 						for (size_t i = 0; i < NFD_PathSet_GetCount(&outPaths); ++i)
 						{
 							nfdchar_t *outPath = NFD_PathSet_GetPath(&outPaths, i);
-							mImageList.emplace_back(outPath);
+							mImageList.push_back(CreateRef<ImageInfo>(outPath));
 						}
 					}
 					else if (result == NFD_CANCEL)
@@ -127,6 +131,20 @@ public:
 					{
 						puts("Success!");
 						puts(outPath);
+						mImageList.clear();
+						mPreviousIdex = mCurrentIdex = 0;
+						std::vector<std::string> extensions = { ".jpg", ".JPG", ".png", ".PNG" };
+						for (const auto& entry : std::filesystem::directory_iterator(outPath)) {
+							if (entry.is_regular_file()) {
+								std::string file_path = entry.path().string();
+								for (const auto& ext : extensions) {
+									if (file_path.size() >= ext.size() && file_path.compare(file_path.size() - ext.size(), ext.size(), ext) == 0) {
+										mImageList.push_back(CreateRef<ImageInfo>(file_path));
+										break;
+									}
+								}
+							}
+						}
 						free(outPath);
 					}
 					else if ( result == NFD_CANCEL )
@@ -218,16 +236,22 @@ public:
 		}
 	}
 
-	void Application::ViewFunction()
+	void ViewFunction()
 	{
+		ImGuiIO& io = ImGui::GetIO();
+		ImVec2 screen_size = ImVec2(io.DisplaySize.x, io.DisplaySize.y);
 		{
-			ImGui::Begin("Setting"); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
+			// Set the next window position to the left side of the screen
+			//ImGui::SetNextWindowPos(ImVec2(screen_size.x / 4, 0));
+			ImGui::SetNextWindowSize(ImVec2(screen_size.x / 4, screen_size.y));
+			//ImGui::SetNextWindowPos(ImVec2(io.DisplacP, 0));
+			ImGui::Begin("Setting", nullptr, ImGuiWindowFlags_NoCollapse); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
 			ImGui::Text("texture pos = %d", mTexture.id);
 			cv::Size currentSize = {0, 0};
 
 			if (!mImageList.empty())
 			{
-				currentSize = cv::Size(mImageList[mCurrentIdex].GetWidth(),mImageList[mCurrentIdex].GetHeight());
+				currentSize = cv::Size(mImageList[mCurrentIdex]->GetWidth(),mImageList[mCurrentIdex]->GetHeight());
 			}
 
 			ImGui::Text("size = %d x %d", currentSize.width, currentSize.height);
@@ -244,13 +268,19 @@ public:
 				ImGui::TextUnformatted("height:");
 				ImGui::SameLine(0, g.Style.ItemInnerSpacing.x);
 				ImGui::DragFloat("##hidelabel", &mHeight, 0.1f, 1.0f, 100.0f);
+				ImGui::PopItemWidth();
 				ImGui::PopID();
 				ImGui::PushID("border");
 				ImGui::TextUnformatted("border offset");
 				ImGui::SameLine();
 				ImGui::DragFloat("##hidelabel", &mBorderOfset, 0.01f, 0.00f, 50.00f);
 				ImGui::PopID();
+				ImGui::PushID("bottom");
+				ImGui::TextUnformatted("bottom offset");
+				ImGui::SameLine();
+				ImGui::DragFloat("##hidelabel", &mBottomOfset, 0.01f, 0.00f, 50.00f);
 				ImGui::PopItemWidth();
+				ImGui::PopID();
 			}
 
 			//{
@@ -271,8 +301,9 @@ public:
 		}
 
 		{
+			ImGui::SetNextWindowSize(ImVec2(screen_size.x * 3 / 4, screen_size.y * 3 / 4));
 			ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(20, 20, 20, 255));
-			ImGui::Begin("Viewer");
+			ImGui::Begin("View", nullptr, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 			// image_size = ImVec2(text.mWidth, text.mHeight);
 			int border = 20;
 			ImVec2 currentWindowSize = ImGui::GetWindowSize();
@@ -285,14 +316,15 @@ public:
 		}
 
 		{
+			ImGui::SetNextWindowSize(ImVec2(screen_size.x / 4, screen_size.y / 4));
 			ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(20, 20, 20, 255));
-			ImGui::Begin("Image List", NULL, ImGuiWindowFlags_HorizontalScrollbar);
+			ImGui::Begin("Image List", NULL, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 			int border = 30;
 			ImVec2 currentWindowSize = ImGui::GetWindowSize();
 			int currentCursorPosX = border / 2;
 			for (int i = 0; i < mImageList.size(); i++)
 			{
-				auto tex = mImageList[i].GetTexture();
+				auto tex = mImageList[i]->GetTexture();
 				ImVec2 windowSize(ImGui::GetWindowSize().x, ImGui::GetWindowSize().y - border);
 				ImVec2 image_size = GetScaleImageSize(ImVec2(static_cast<float>(tex.width), static_cast<float>(tex.height)), windowSize);
 				ImVec2 image_pos = ImVec2(currentCursorPosX, border);
@@ -356,11 +388,13 @@ public:
 		cv::Scalar borderColor = vec2scalar(mBorderColor);
 		cv::Size size = cv::Size(cm2pixel(mWidth), cm2pixel(mHeight));
 		float borderOfsetPixel = cm2pixel(mBorderOfset);
+		float bottomOfsetPixel = cm2pixel(mBottomOfset);
+
 		// crash when input width, height
 		if (!size.empty())
 		{
 			cv::Mat mBorderText = cv::Mat(size, CV_8UC3, borderColor);
-			cv::Rect borderRect = cv::Rect(borderOfsetPixel, borderOfsetPixel, size.width - borderOfsetPixel * 2, size.height - borderOfsetPixel * 5);
+			cv::Rect borderRect = cv::Rect(borderOfsetPixel, borderOfsetPixel, size.width - borderOfsetPixel * 2, size.height - borderOfsetPixel * 2 - bottomOfsetPixel);
 			if (RoiRefine(borderRect, size))
 			{
 				cv::Mat resizeImg = cv::Mat::zeros(borderRect.size(), CV_8UC3);
@@ -369,10 +403,10 @@ public:
 					cv::Mat mCurrentMat;
 					for(auto& img : mImageList)
 					{
-						mCurrentMat = cv::imread(img.GetPath());
+						mCurrentMat = cv::imread(img->GetPath());
 						resizeImg = resizeKeepAspectRatio(mCurrentMat, borderRect.size(), bgColor);
 						resizeImg.copyTo(mBorderText(borderRect));
-						std::string filePath = folderPath + "\\" + img.GetName();
+						std::string filePath = folderPath + "\\" + img->GetName();
 						cv::imwrite(filePath, mBorderText);
 					}
 				}
@@ -389,11 +423,12 @@ public:
 		cv::Scalar borderColor = vec2scalar(mBorderColor);
 		cv::Size size = cv::Size(cm2pixel(mWidth), cm2pixel(mHeight));
 		float borderOfsetPixel = cm2pixel(mBorderOfset);
+		float bottomOfsetPixel = cm2pixel(mBottomOfset);
 		// crash when input width, height
 		if (!size.empty())
 		{
 			cv::Mat mBorderText = cv::Mat(size, CV_8UC3, borderColor);
-			cv::Rect borderRect = cv::Rect(borderOfsetPixel, borderOfsetPixel, size.width - borderOfsetPixel * 2, size.height - borderOfsetPixel * 5);
+			cv::Rect borderRect = cv::Rect(borderOfsetPixel, borderOfsetPixel, size.width - borderOfsetPixel * 2, size.height - borderOfsetPixel * 2 - bottomOfsetPixel);
 			if (RoiRefine(borderRect, size))
 			{
 				cv::Mat resizeImg = cv::Mat::zeros(borderRect.size(), CV_8UC3);
@@ -404,7 +439,7 @@ public:
 					// 	cv::rotate(mText, mText, cv::ROTATE_90_CLOCKWISE);
 					// 	borderRect = cv::Rect(borderOfsetPixel*2, borderOfsetPixel, size.width - borderOfsetPixel*3, size.height - borderOfsetPixel*2);
 					// }
-					if(mPreviousIdex != mCurrentIdex || mCurrentMat.empty()) mCurrentMat = cv::imread(mImageList[mCurrentIdex].GetPath());
+					if(mPreviousIdex != mCurrentIdex || mCurrentMat.empty()) mCurrentMat = cv::imread(mImageList[mCurrentIdex]->GetPath());
 					resizeImg = resizeKeepAspectRatio(mCurrentMat, borderRect.size(), bgColor);
 				}
 				resizeImg.copyTo(mBorderText(borderRect));
@@ -442,7 +477,7 @@ public:
 	void Reset()
 	{
 		for (auto &image : mImageList)
-			image.Release();
+			image->Release();
 		mImageList.clear();
 		mCurrentIdex = mPreviousIdex = 0;
 		mCurrentMat = {};
@@ -459,7 +494,7 @@ public:
 	{
 		ImageRelease(mTexture);
 		for (auto &image : mImageList)
-			image.Release();
+			image->Release();
 	}
 
 public:
@@ -472,9 +507,10 @@ private:
 	float mWidth = 6;
 	float mHeight = 9;
 	float mBorderOfset = 0.25;
+	float mBottomOfset = 0.75;
 	ImVec4 mBgColor = {1.0f, 1.0f, 1.0f, 1.0f};
 	ImVec4 mBorderColor = {1.0f, 1.0f, 1.0f, 1.0f};
-	std::vector<ImageInfo> mImageList{};
+	std::vector<Ref<ImageInfo>> mImageList{};
 	int mCurrentIdex;
 	int mPreviousIdex;
 	cv::Mat mCurrentMat;
@@ -483,7 +519,7 @@ private:
 
 int main()
 {
-	Window window("Image App", 1080, 720, true);
+	Window window("Polaroid", 1080, 720, true);
 
 	window.set_key_callback([&](int key, int action) noexcept
 							{
