@@ -1,6 +1,23 @@
 # Polaroid
-[![Build Status](https://github.com/kybuivan/polaroid/actions/workflows/windows.yml/badge.svg)](https://github.com/kybuivan/polaroid/actions)  
+
+[![Build Status](https://github.com/kybuivan/polaroid/actions/workflows/windows.yml/badge.svg)](https://github.com/kybuivan/polaroid/actions)
+
 Polaroid is a simple image viewer built using C++ and the ImGui library. It allows users to open and view images in a variety of formats.
+
+<p align="center">
+  <img alt="GitHub Language Count" src="https://img.shields.io/github/languages/count/kybuivan/polaroid" />
+  <img alt="GitHub Top Language" src="https://img.shields.io/github/languages/top/kybuivan/polaroid" />
+  <img alt="" src="https://img.shields.io/github/repo-size/kybuivan/polaroid" />
+  <img alt="GitHub Issues" src="https://img.shields.io/github/issues/kybuivan/polaroid" />
+  <img alt="GitHub Closed Issues" src="https://img.shields.io/github/issues-closed/kybuivan/polaroid" />
+  <img alt="GitHub Pull Requests" src="https://img.shields.io/github/issues-pr/kybuivan/polaroid" />
+  <img alt="GitHub Closed Pull Requests" src="https://img.shields.io/github/issues-pr-closed/kybuivan/polaroid" />
+  <img alt="GitHub Contributors" src="https://img.shields.io/github/contributors/kybuivan/polaroid" />
+  <img alt="GitHub Last Commit" src="https://img.shields.io/github/last-commit/kybuivan/polaroid" />
+  <img alt="GitHub Commit Activity (Week)" src="https://img.shields.io/github/commit-activity/w/kybuivan/polaroid" />
+  <img alt="GitHub Commit Activity (Month)" src="https://img.shields.io/github/commit-activity/m/kybuivan/polaroid" />
+  <img alt="Github License" src="https://img.shields.io/github/license/kybuivan/polaroid" />
+</p>
 
 ![screenshot](/screenshot/Capture1.PNG "screenshot")
 
